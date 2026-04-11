@@ -23,5 +23,5 @@ RUN npm install -g serve
 # Expose port
 EXPOSE 8080
 
-# Start app
-CMD ["serve", "-s", "dist", "-l", "8080"]
+# Start app using custom server for correct MPA routing
+CMD ["npm", "start"]
