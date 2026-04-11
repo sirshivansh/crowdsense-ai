@@ -1,19 +1,20 @@
-# Use Node.js
 FROM node:18
 
-# Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies (IMPORTANT FIX HERE)
 RUN npm install
 
-# Copy all files
+# Copy rest of code
 COPY . .
 
-# Build frontend
+# Fix permission issue
+RUN chmod +x node_modules/.bin/vite || true
+
+# Build project
 RUN npm run build
 
 # Install serve
