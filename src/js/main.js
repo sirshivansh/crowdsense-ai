@@ -98,6 +98,17 @@ document.addEventListener('DOMContentLoaded', () => {
   findRouteBtn?.addEventListener('click', () => {
     const start = document.getElementById('route-start').value;
     const end   = document.getElementById('route-end').value;
+
+    if (!start || !end) {
+      showAlertBanner('Please select both origin and destination.');
+      return;
+    }
+
+    if (start === end) {
+      showAlertBanner('Start and destination cannot be the same');
+      return;
+    }
+
     if (!routingMode) enableRouteMode();
     const meta = routing.showRoute(start, end);
     // Show route metadata panel
@@ -106,6 +117,62 @@ document.addEventListener('DOMContentLoaded', () => {
       routeMeta.classList.remove('hidden');
     }
   });
+
+  // ── Dynamic Dropdown Population & Validation
+  function populateRouteDropdowns() {
+    const startSelect = document.getElementById('route-start');
+    const endSelect   = document.getElementById('route-end');
+    if (!startSelect || !endSelect) return;
+
+    const zones = simulator.state.zones;
+    
+    // Clear existing (but keep placeholder)
+    const placeholderStart = startSelect.firstElementChild;
+    const placeholderEnd   = endSelect.firstElementChild;
+    startSelect.innerHTML = '';
+    endSelect.innerHTML = '';
+    if (placeholderStart) startSelect.appendChild(placeholderStart);
+    if (placeholderEnd) endSelect.appendChild(placeholderEnd);
+
+    zones.forEach(zone => {
+      const optStart = document.createElement('option');
+      optStart.value = zone.id;
+      optStart.textContent = zone.name;
+      startSelect.appendChild(optStart);
+
+      const optEnd = document.createElement('option');
+      optEnd.value = zone.id;
+      optEnd.textContent = zone.name;
+      endSelect.appendChild(optEnd);
+    });
+  }
+
+  function validateRouteSelection() {
+    const start = document.getElementById('route-start').value;
+    const end   = document.getElementById('route-end').value;
+    const btn   = document.getElementById('find-route-btn');
+
+    if (start && end && start === end) {
+      showAlertBanner('Start and destination cannot be the same');
+      if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+      }
+    } else {
+      if (btn) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+      }
+    }
+  }
+
+  document.getElementById('route-start')?.addEventListener('change', validateRouteSelection);
+  document.getElementById('route-end')?.addEventListener('change', validateRouteSelection);
+
+  // Initial population
+  populateRouteDropdowns();
 
   // ── Alert Toasts
   function showAlertBanner(msg) {
