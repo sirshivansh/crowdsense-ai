@@ -4,15 +4,13 @@ export class Flow {
   constructor(layerId, routingInstance) {
     this.layer = document.getElementById(layerId);
     this.routing = routingInstance;
-    
     this.particles = [];
     this.initFlows();
   }
 
   initFlows() {
     if (!this.layer) return;
-    
-    // We will generate particles on some key edges
+
     const activeEdges = [
       ['gate_a', 'nw_corner'],
       ['nw_corner', 'section_101'],
@@ -24,23 +22,22 @@ export class Flow {
       ['sw_corner', 'section_205']
     ];
 
-    // Create defs for paths
-    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
     this.layer.appendChild(defs);
 
     activeEdges.forEach((edge, idx) => {
       const p1 = this.routing.nodes[edge[0]];
       const p2 = this.routing.nodes[edge[1]];
-      
+
       const pathId = `flow-path-${idx}`;
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('id', pathId);
       path.setAttribute('d', `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`);
       defs.appendChild(path);
 
-      // Create several particles for this edge
-      for (let i = 0; i < 3; i++) {
-        this.createParticle(pathId, edge, i * 2); // staggered start times
+      // Fewer, subtler particles — 2 per edge
+      for (let i = 0; i < 2; i++) {
+        this.createParticle(pathId, edge, i * 2.5);
       }
     });
 
@@ -48,19 +45,19 @@ export class Flow {
   }
 
   createParticle(pathId, edge, delay) {
-    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    circle.setAttribute('r', '3');
-    circle.setAttribute('fill', 'rgba(0, 210, 255, 0.8)');
-    circle.setAttribute('filter', 'drop-shadow(0 0 4px rgba(0,210,255,0.8))');
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('r', '2');
+    // Subtle muted blue — no neon glow
+    circle.setAttribute('fill', 'rgba(120,180,255,0.55)');
+    circle.setAttribute('opacity', '0.7');
 
-    const anim = document.createElementNS("http://www.w3.org/2000/svg", "animateMotion");
-    anim.setAttribute('dur', '5s');
+    const anim = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
+    anim.setAttribute('dur', '6s');
     anim.setAttribute('repeatCount', 'indefinite');
     anim.setAttribute('begin', `${delay}s`);
-    
-    const mpath = document.createElementNS("http://www.w3.org/2000/svg", "mpath");
+
+    const mpath = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
     mpath.setAttribute('href', `#${pathId}`);
-    
     anim.appendChild(mpath);
     circle.appendChild(anim);
     this.layer.appendChild(circle);
@@ -71,9 +68,7 @@ export class Flow {
   updateFlowSpeeds() {
     const state = simulator.state;
     this.particles.forEach(p => {
-      // average density of the two nodes
       let d1 = 0.5, d2 = 0.5;
-      
       if (this.routing.nodes[p.edge[0]].isZone) {
         const z1 = state.zones.find(z => z.id === p.edge[0]);
         if (z1) d1 = z1.density;
@@ -84,18 +79,17 @@ export class Flow {
       }
 
       const avgD = (d1 + d2) / 2;
-      
-      // If density is high, duration increases (slower flow)
-      // Base duration 3s. If density is 1.0 -> 10s (crawling).
-      const newDur = 3 + (avgD * 7);
-      
-      p.anim.setAttribute('dur', `${newDur}s`);
-      
-      // If congestion is fatal, turn particle reddish
+      // Congestion → slower particles (4s base, up to 12s max)
+      const newDur = 4 + (avgD * 8);
+      p.anim.setAttribute('dur', `${newDur.toFixed(1)}s`);
+
+      // Subtle color shift: blue → muted amber on congestion
       if (avgD > 0.8) {
-        p.circle.setAttribute('fill', 'rgba(255, 100, 100, 0.8)');
+        p.circle.setAttribute('fill', 'rgba(232,160,32,0.45)');
+      } else if (avgD > 0.55) {
+        p.circle.setAttribute('fill', 'rgba(160,180,255,0.5)');
       } else {
-        p.circle.setAttribute('fill', 'rgba(0, 210, 255, 0.8)');
+        p.circle.setAttribute('fill', 'rgba(120,180,255,0.55)');
       }
     });
   }

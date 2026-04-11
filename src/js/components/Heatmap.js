@@ -1,3 +1,5 @@
+import { simulator } from '../data/simulation.js';
+
 export class Heatmap {
   constructor(layerId) {
     this.layer = document.getElementById(layerId);
@@ -78,50 +80,45 @@ export class Heatmap {
   }
 
   showTooltip(e, zoneId) {
-    // Determine the dynamic state from simulator
-    // Since Heatmap doesn't store the full state, we can dynamically pull it from simulator or just the last updated zones.
-    // However, it's better to get the exact up to date zone.
-    import('../data/simulation.js').then(({ simulator }) => {
-      const state = simulator.state;
-      const zone = state.zones.find(z => z.id === zoneId);
-      if (!zone) return;
+    const state = simulator.state;
+    const zone = state.zones.find(z => z.id === zoneId);
+    if (!zone) return;
 
-      this.ttTitle.textContent = zone.name;
-      this.ttDensity.textContent = `${Math.round(zone.density * 100)}%`;
-      
-      // Map wait times if applicable
-      this.ttWaitContainer.classList.add('hidden');
-      if (zone.id === 'food_court') {
-        const wt = state.waitTimes.find(w => w.id === 'food');
-        if (wt) {
-          this.ttWaitMsg.textContent = `${wt.time} mins`;
-          this.ttWaitContainer.classList.remove('hidden');
-        }
-      } else if (zone.id === 'restroom_north') {
-         const wt = state.waitTimes.find(w => w.id === 'rest');
-        if (wt) {
-          this.ttWaitMsg.textContent = `${wt.time} mins`;
-          this.ttWaitContainer.classList.remove('hidden');
-        }
+    this.ttTitle.textContent = zone.name;
+    this.ttDensity.textContent = `${Math.round(zone.density * 100)}%`;
+    
+    // Map wait times if applicable
+    this.ttWaitContainer.classList.add('hidden');
+    if (zone.id === 'food_court') {
+      const wt = state.waitTimes.find(w => w.id === 'food');
+      if (wt) {
+        this.ttWaitMsg.textContent = `${wt.time} mins`;
+        this.ttWaitContainer.classList.remove('hidden');
       }
-
-      // Suggestion text colour
-      if (zone.density > 0.8) {
-        this.ttSuggestion.textContent = 'High congestion. Use an alternate route.';
-        this.ttSuggestion.style.color = 'var(--red)';
-      } else if (zone.density < 0.4) {
-        this.ttSuggestion.textContent = 'Clear path. Good time to move.';
-        this.ttSuggestion.style.color = 'var(--green)';
-      } else {
-        this.ttSuggestion.textContent = 'Moderate traffic. Proceed normally.';
-        this.ttSuggestion.style.color = 'var(--yellow)';
+    } else if (zone.id === 'restroom_north') {
+       const wt = state.waitTimes.find(w => w.id === 'rest');
+      if (wt) {
+        this.ttWaitMsg.textContent = `${wt.time} mins`;
+        this.ttWaitContainer.classList.remove('hidden');
       }
+    }
 
-      // Update position
-      this.tooltip.classList.remove('hidden');
-      this.tooltip.style.left = `${e.pageX}px`;
-      this.tooltip.style.top = `${e.pageY - 15}px`;
-    });
+    // Suggestion text colour
+    if (zone.density > 0.8) {
+      this.ttSuggestion.textContent = 'High congestion. Use an alternate route.';
+      this.ttSuggestion.style.color = 'var(--red)';
+    } else if (zone.density < 0.4) {
+      this.ttSuggestion.textContent = 'Clear path. Good time to move.';
+      this.ttSuggestion.style.color = 'var(--green)';
+    } else {
+      this.ttSuggestion.textContent = 'Moderate traffic. Proceed normally.';
+      this.ttSuggestion.style.color = 'var(--yellow)';
+    }
+
+    // Update position
+    this.tooltip.classList.remove('hidden');
+    this.tooltip.style.left = `${e.pageX}px`;
+    this.tooltip.style.top = `${e.pageY - 15}px`;
   }
 
   hideTooltip() {
@@ -136,11 +133,9 @@ export class Heatmap {
     Object.values(this.elements).forEach(el => el.classList.remove('active'));
     if (this.elements[zoneId]) this.elements[zoneId].classList.add('active');
 
-    import('../data/simulation.js').then(({ simulator }) => {
-      const state = simulator.state;
-      const zone = state.zones.find(z => z.id === zoneId);
-      if (zone) this.updateSidebarData(zone, state);
-    });
+    const state = simulator.state;
+    const zone = state.zones.find(z => z.id === zoneId);
+    if (zone) this.updateSidebarData(zone, state);
   }
 
   closeSidebar() {
@@ -151,37 +146,31 @@ export class Heatmap {
   }
 
   updateSidebarData(zone, stateObj) {
-    const doUpdate = (state) => {
-      this.zdTitle.textContent = zone.name;
-      const pct = Math.round(zone.density * 100);
-      this.zdDensity.textContent = `${pct}%`;
-      this.zdDensity.className = zone.density > 0.75 ? 'text-danger' : (zone.density > 0.4 ? 'text-warning' : 'text-success');
+    const state = stateObj || simulator.state;
+    
+    this.zdTitle.textContent = zone.name;
+    const pct = Math.round(zone.density * 100);
+    this.zdDensity.textContent = `${pct}%`;
+    this.zdDensity.className = zone.density > 0.75 ? 'text-danger' : (zone.density > 0.4 ? 'text-warning' : 'text-success');
 
-      // Trend bar logic
-      this.zdTrend.style.width = `${pct}%`;
-      this.zdTrend.style.background = zone.density > 0.75
-        ? 'var(--red)'
-        : (zone.density > 0.4 ? 'var(--yellow)' : 'var(--green)');
+    // Trend bar logic
+    this.zdTrend.style.width = `${pct}%`;
+    this.zdTrend.style.background = zone.density > 0.75
+      ? 'var(--red)'
+      : (zone.density > 0.4 ? 'var(--yellow)' : 'var(--green)');
 
-      this.zdWaitContainer.style.display = 'none';
-      if (zone.id === 'food_court' || zone.id === 'restroom_north') {
-        const wtId = zone.id === 'food_court' ? 'food' : 'rest';
-        const wt = state.waitTimes.find(w => w.id === wtId);
-        if (wt) {
-          this.zdWaitContainer.style.display = 'flex';
-          this.zdWait.textContent = `${wt.time} mins`;
-        }
+    this.zdWaitContainer.style.display = 'none';
+    if (zone.id === 'food_court' || zone.id === 'restroom_north') {
+      const wtId = zone.id === 'food_court' ? 'food' : 'rest';
+      const wt = state.waitTimes.find(w => w.id === wtId);
+      if (wt) {
+        this.zdWaitContainer.style.display = 'flex';
+        this.zdWait.textContent = `${wt.time} mins`;
       }
-
-      if (zone.density > 0.8) this.zdSuggestion.textContent = "Critical density reached. Operations evaluating bypasses.";
-      else if (zone.density > 0.5) this.zdSuggestion.textContent = "Traffic flowing moderately. Standard queue speeds apply.";
-      else this.zdSuggestion.textContent = "Zone is below average capacity. Efficient entry/exit lines.";
-    };
-
-    if (stateObj) {
-      doUpdate(stateObj);
-    } else {
-      import('../data/simulation.js').then(({ simulator }) => doUpdate(simulator.state));
     }
+
+    if (zone.density > 0.8) this.zdSuggestion.textContent = "Critical density reached. Operations evaluating bypasses.";
+    else if (zone.density > 0.5) this.zdSuggestion.textContent = "Traffic flowing moderately. Standard queue speeds apply.";
+    else this.zdSuggestion.textContent = "Zone is below average capacity. Efficient entry/exit lines.";
   }
 }

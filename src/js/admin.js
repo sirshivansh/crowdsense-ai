@@ -9,7 +9,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const alertsList = document.getElementById('alerts-list');
   const ctx = document.getElementById('predictionChart').getContext('2d');
 
-  let activeAlerts = 2; // matching initial HTML
+  // Alerts Sidebar Interaction
+  const navAlerts = document.getElementById('nav-alerts');
+  const alertsLog = document.querySelector('.alerts-log');
+
+  if (navAlerts && alertsLog) {
+    navAlerts.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Visual feedback: brief highlight pulse
+      alertsLog.classList.remove('highlight-pulse'); // reset if already active
+      void alertsLog.offsetWidth; // trigger reflow
+      alertsLog.classList.add('highlight-pulse');
+      setTimeout(() => alertsLog.classList.remove('highlight-pulse'), 1500);
+    });
+  }
+
+  let activeAlerts = 2;
 
   // Init Chart
   const predictionChart = new Chart(ctx, {
@@ -32,8 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        y: { 
-          beginAtZero: true, 
+        y: {
+          beginAtZero: true,
           max: 1.0,
           grid: { color: 'rgba(255,255,255,0.05)' }
         },
@@ -51,8 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
   simulator.on('update:predictions', (data) => {
     predictionChart.data.datasets[0].data = data;
     predictionChart.update();
-    
-    // Update overall density KPI
+
     const currentDensity = data[data.length - 1];
     let densityText = 'Low';
     if (currentDensity > 0.4) densityText = 'Moderate';
@@ -63,22 +77,22 @@ document.addEventListener('DOMContentLoaded', () => {
   simulator.on('alert', (msg) => {
     activeAlerts++;
     kpiAlerts.textContent = activeAlerts;
-    
+
     const li = document.createElement('li');
     li.className = 'alert-item warning';
-    
+
     const now = new Date();
     const timeSpan = document.createElement('span');
     timeSpan.className = 'time';
     timeSpan.textContent = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
+
     const msgSpan = document.createElement('span');
     msgSpan.className = 'msg';
     msgSpan.textContent = msg;
 
     li.appendChild(timeSpan);
     li.appendChild(msgSpan);
-    
+
     alertsList.prepend(li);
     if (alertsList.children.length > 5) {
       alertsList.removeChild(alertsList.lastChild);

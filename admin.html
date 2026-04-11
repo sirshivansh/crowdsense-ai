@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,6 +12,7 @@
   <link rel="stylesheet" href="/src/css/style.css" />
   <link rel="stylesheet" href="/src/css/admin.css" />
 </head>
+
 <body class="admin-body">
   <aside class="sidebar glass-panel">
     <div class="logo">
@@ -18,8 +20,8 @@
       <h2>CrowdSense <strong>Ops</strong></h2>
     </div>
     <nav class="sidebar-nav">
-      <a href="#" class="active">Dashboard</a>
-      <a href="#">Alerts</a>
+      <a href="#" class="active" id="nav-dashboard">Dashboard</a>
+      <a href="#" id="nav-alerts">Alerts</a>
       <a href="/index.html" class="outline-btn small-btn mt-auto">⟵ Back to Map</a>
     </nav>
   </aside>
@@ -58,7 +60,7 @@
           <canvas id="predictionChart"></canvas>
         </div>
       </div>
-      
+
       <div class="alerts-log glass-panel">
         <h3>Live AI Observations</h3>
         <ul id="alerts-list">
@@ -67,8 +69,8 @@
             <span class="msg">Congestion building at Gate C</span>
           </li>
           <li class="alert-item info">
-             <span class="time">15:30</span>
-             <span class="msg">Food Court 2 wait time decreased</span>
+            <span class="time">15:30</span>
+            <span class="msg">Food Court 2 wait time decreased</span>
           </li>
         </ul>
       </div>
@@ -77,4 +79,5 @@
 
   <script type="module" src="/src/js/admin.js"></script>
 </body>
+
 </html>
