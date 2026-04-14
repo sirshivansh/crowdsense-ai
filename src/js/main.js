@@ -4,6 +4,8 @@ import { Routing } from './components/Routing.js';
 import { Flow } from './components/Flow.js';
 import { WaitTimes } from './components/WaitTimes.js';
 import { Chatbot } from './components/Chatbot.js';
+import { db } from "./firebase";
+import { collection, addDoc } from "firebase/firestore";
 
 document.addEventListener('DOMContentLoaded', () => {
   // ── Bootstrap components
@@ -19,11 +21,22 @@ document.addEventListener('DOMContentLoaded', () => {
   updateAIRecommendation(simulator.state);
 
   // ── Simulator bindings
-  simulator.on('update:heatmap', (zones) => {
-    heatmap.update(zones);
-    updateAIRecommendation(simulator.state);
-    updateSmartSuggestions(simulator.state);
-  });
+  simulator.on('update:heatmap', async (zones) => {
+  heatmap.update(zones);
+  updateAIRecommendation(simulator.state);
+  updateSmartSuggestions(simulator.state);
+
+  // 🔥 Save to Firestore
+  try {
+    await addDoc(collection(db, "crowdData"), {
+      zones: zones,
+      timestamp: new Date()
+    });
+    console.log("Crowd data saved to Firestore");
+  } catch (e) {
+    console.error("Error saving data:", e);
+  }
+});
 
   simulator.on('update:waitTimes', (times) => {
     waitTimes.update(times);
@@ -296,4 +309,3 @@ document.addEventListener('DOMContentLoaded', () => {
   initSuggestionNodes();
   updateSmartSuggestions(simulator.state);
 });
-
