@@ -1,12 +1,27 @@
 /**
  * Enhanced Congestion Predictor.
  * Uses weighted rate of change to provide proactive traffic intelligence.
+ *
+ * VERTEX AI INTEGRATION:
+ *   Set USE_VERTEX = true to route async predictions through the Vertex AI
+ *   service layer. The synchronous getTrendAnalysis() method is always
+ *   available as a fast fallback for routing weight calculations.
  */
+import { getPredictionFromVertex } from '../services/vertexService.js';
+
+/**
+ * Feature flag — flip to true to enable the Vertex AI inference path.
+ * When false, the system runs entirely on the local WRC engine.
+ */
+export const USE_VERTEX = false;
+
 export class CongestionPredictor {
   /**
    * Analyzes historical density to identify trends.
+   * Synchronous — used directly by the routing engine for weight calculation.
+   *
    * @param {number[]} historicalData - Array of recent density values.
-   * @returns {Object} { isIncreasing, confidence, message, trendScore }
+   * @returns {{ isIncreasing: boolean, confidence: number, message: string, trendScore: number }}
    */
   static getTrendAnalysis(historicalData) {
     if (!historicalData || historicalData.length < 3) {
@@ -37,7 +52,7 @@ export class CongestionPredictor {
     
     // Confidence based on consistency and data volume
     const consistency = 1 - Math.min(1, Math.abs(deltas[deltas.length - 1] - weightedRate) * 5);
-    let confidence = Math.max(0.2, consistency * (historicalData.length / 10)); // Higher base confidence
+    let confidence = Math.max(0.2, consistency * (historicalData.length / 10));
     confidence = Math.min(0.99, confidence);
 
     // Human-readable message
@@ -52,6 +67,29 @@ export class CongestionPredictor {
       message,
       trendScore: weightedRate // useful for penalties
     };
+  }
+
+  /**
+   * Async analysis — uses Vertex AI when USE_VERTEX is enabled,
+   * falls back to the local WRC engine on error or when flag is off.
+   *
+   * Use this in event-driven pipelines (simulator updates, UI refresh)
+   * where async is acceptable. Do NOT use in synchronous weight calculations.
+   *
+   * @param {number[]} historicalData
+   * @param {object[]} [zones] - Optional zone snapshots for richer inference
+   * @returns {Promise<object>} Same shape as getTrendAnalysis()
+   */
+  static async getAnalysis(historicalData, zones = []) {
+    if (USE_VERTEX) {
+      const vertexResult = await getPredictionFromVertex({ historicalData, zones });
+      if (vertexResult) return vertexResult;
+
+      // Vertex call failed — fall back silently
+      console.warn('[Predictor] Vertex AI unavailable — using local WRC engine.');
+    }
+
+    return this.getTrendAnalysis(historicalData);
   }
 
   /**

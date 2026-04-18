@@ -33,8 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
     firebaseService.triggerAlertIfHighDensity(zones);
   });
 
-  simulator.on('update:predictions', (history) => {
-    const analysis = CongestionPredictor.getTrendAnalysis(history);
+  simulator.on('update:predictions', async (history) => {
+    // Uses Vertex AI when USE_VERTEX flag is enabled, otherwise local WRC engine
+    const analysis = await CongestionPredictor.getAnalysis(history, simulator.state.zones);
     if (analysis.isIncreasing && analysis.confidence > 0.6) {
       firebaseService.logPrediction(analysis);
       console.log("🧠 Prediction logged:", analysis);
