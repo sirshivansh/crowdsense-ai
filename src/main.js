@@ -1,19 +1,19 @@
-import { simulator } from './data/simulation.js';
+import { simulator } from './simulation/simulator.js';
 import { Heatmap } from './components/Heatmap.js';
 import { Routing } from './components/Routing.js';
 import { Flow } from './components/Flow.js';
 import { WaitTimes } from './components/WaitTimes.js';
 import { Chatbot } from './components/Chatbot.js';
-import { db } from "./firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { CongestionPredictor } from './ai/predictor.js';
+import { firebaseService } from './services/firebaseService.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // ── Bootstrap components
-  const heatmap  = new Heatmap('heatmap-layer');
-  const routing  = new Routing('route-layer');
-  const flow     = new Flow('flow-layer', routing);
+  const heatmap = new Heatmap('heatmap-layer');
+  const routing = new Routing('route-layer');
+  const flow = new Flow('flow-layer', routing);
   const waitTimes = new WaitTimes('wait-list-container');
-  const chatbot  = new Chatbot();
+  const chatbot = new Chatbot();
 
   // ── Initial paint
   heatmap.update(simulator.state.zones);
@@ -22,21 +22,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Simulator bindings
   simulator.on('update:heatmap', async (zones) => {
-  heatmap.update(zones);
-  updateAIRecommendation(simulator.state);
-  updateSmartSuggestions(simulator.state);
+    heatmap.update(zones);
+    updateAIRecommendation(simulator.state);
+    updateSmartSuggestions(simulator.state);
 
-  // 🔥 Save to Firestore
-  try {
-    await addDoc(collection(db, "crowdData"), {
-      zones: zones,
-      timestamp: new Date()
-    });
-    console.log("Crowd data saved to Firestore");
-  } catch (e) {
-    console.error("Error saving data:", e);
-  }
-});
+    // 🚀 Production Firebase Integration
+    firebaseService.saveCrowdData(zones);
+    console.log("📡 Crowd data sent to Firebase:", zones);
+    firebaseService.triggerAlertIfHighDensity(zones);
+  });
+
+  simulator.on('update:predictions', (history) => {
+    const analysis = CongestionPredictor.getTrendAnalysis(history);
+    if (analysis.isIncreasing && analysis.confidence > 0.6) {
+      firebaseService.logPrediction(analysis);
+      console.log("🧠 Prediction logged:", analysis);
+    }
+  });
 
   simulator.on('update:waitTimes', (times) => {
     waitTimes.update(times);
@@ -69,13 +71,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Routing mode controls
   let routingMode = false;
-  const btnHeatmap    = document.getElementById('btn-heatmap');
-  const btnRouting    = document.getElementById('btn-routing');
-  const badge         = document.getElementById('route-mode-badge');
+  const btnHeatmap = document.getElementById('btn-heatmap');
+  const btnRouting = document.getElementById('btn-routing');
+  const badge = document.getElementById('route-mode-badge');
   const btnClearRoute = document.getElementById('btn-clear-route');
-  const findRouteBtn  = document.getElementById('find-route-btn');
-  const routeMeta     = document.getElementById('route-meta');
-  const mapBackBtn    = document.getElementById('map-back-btn');
+  const findRouteBtn = document.getElementById('find-route-btn');
+  const routeMeta = document.getElementById('route-meta');
+  const mapBackBtn = document.getElementById('map-back-btn');
 
   const disableRouteMode = () => {
     routingMode = false;
@@ -110,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   findRouteBtn?.addEventListener('click', () => {
     const start = document.getElementById('route-start').value;
-    const end   = document.getElementById('route-end').value;
+    const end = document.getElementById('route-end').value;
 
     if (!start || !end) {
       showAlertBanner('Please select both origin and destination.');
@@ -134,14 +136,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Dynamic Dropdown Population & Validation
   function populateRouteDropdowns() {
     const startSelect = document.getElementById('route-start');
-    const endSelect   = document.getElementById('route-end');
+    const endSelect = document.getElementById('route-end');
     if (!startSelect || !endSelect) return;
 
     const zones = simulator.state.zones;
-    
+
     // Clear existing (but keep placeholder)
     const placeholderStart = startSelect.firstElementChild;
-    const placeholderEnd   = endSelect.firstElementChild;
+    const placeholderEnd = endSelect.firstElementChild;
     startSelect.innerHTML = '';
     endSelect.innerHTML = '';
     if (placeholderStart) startSelect.appendChild(placeholderStart);
@@ -162,8 +164,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function validateRouteSelection() {
     const start = document.getElementById('route-start').value;
-    const end   = document.getElementById('route-end').value;
-    const btn   = document.getElementById('find-route-btn');
+    const end = document.getElementById('route-end').value;
+    const btn = document.getElementById('find-route-btn');
 
     if (start && end && start === end) {
       showAlertBanner('Start and destination cannot be the same');
@@ -213,29 +215,29 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(removeToast, 5000);
   }
 
-  // ── AI Primary Recommendation — update text in place (no DOM rebuild)
+  // ── AI Primary Recommendation (Proactive)
   function updateAIRecommendation(state) {
-    const card     = document.getElementById('ai-recommendation');
+    const card = document.getElementById('ai-recommendation');
     const actionEl = document.getElementById('ai-action');
     const reasonEl = document.getElementById('ai-reason');
     if (!card || !actionEl || !reasonEl) return;
 
     const zones = state.zones;
-    const waits = state.waitTimes;
-    const bestZone  = [...zones].sort((a, b) => a.density - b.density)[0];
-    const bestWait  = [...waits].sort((a, b) => a.time - b.time)[0];
+    const analysis = CongestionPredictor.getTrendAnalysis(state.historicalDensity);
+
+    const bestZone = [...zones].sort((a, b) => a.density - b.density)[0];
     const worstZone = [...zones].sort((a, b) => b.density - a.density)[0];
-    const savedMins = Math.round((worstZone.density - bestZone.density) * 8);
 
-    const newAction = `Use ${bestZone.name} \u2192 ${bestWait.name}`;
-    const newReason = savedMins > 0
-      ? `Saves ~${savedMins} min \u2014 avoids congestion at ${worstZone.name}`
-      : `Current optimal path \u2014 low crowd density detected`;
+    let newAction = `Head to ${bestZone.name}`;
+    let newReason = `Current optimal path identified. ${analysis.message}`;
 
-    // Only animate + write if content actually changed
+    if (analysis.isIncreasing) {
+      newAction = `Proactive Move: ${bestZone.name}`;
+      newReason = `Congestion building fast. Avoid ${worstZone.name} now.`;
+    }
+
     if (actionEl.textContent !== newAction || reasonEl.textContent !== newReason) {
       card.classList.add('ai-updating');
-      // Small delay so CSS opacity transition is visible
       requestAnimationFrame(() => {
         actionEl.textContent = newAction;
         reasonEl.textContent = newReason;
@@ -244,9 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ── Smart Suggestions — in-place stable update
-  // We maintain exactly 3 fixed <li> nodes and update their contents.
-  // This prevents any layout shift or flicker from DOM rebuilds.
+  // ── Smart Suggestions (Proactive)
   const SUGGESTION_IDS = ['sug-0', 'sug-1', 'sug-2'];
 
   function initSuggestionNodes() {
@@ -263,20 +263,20 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateSmartSuggestions(state) {
-    const bestWait  = [...state.waitTimes].sort((a, b) => a.time - b.time)[0];
+    const analysis = CongestionPredictor.getTrendAnalysis(state.historicalDensity);
+    const bestWait = [...state.waitTimes].sort((a, b) => a.time - b.time)[0];
     const worstZone = [...state.zones].sort((a, b) => b.density - a.density)[0];
-    const clearZone = [...state.zones].sort((a, b) => a.density - b.density)[0];
 
     const items = [
       bestWait
-        ? { icon: '\u23F1', text: `${bestWait.name} \u2014 ${bestWait.time} min wait` }
+        ? { icon: '⏳', text: `${bestWait.name}: ${bestWait.time}m wait` }
         : null,
-      (worstZone && worstZone.density > 0.68)
-        ? { icon: '\u26A0', text: `Avoid ${worstZone.name} \u2014 ${Math.round(worstZone.density * 100)}% capacity` }
-        : null,
-      (clearZone && clearZone.density < 0.5)
-        ? { icon: '\u2713', text: `${clearZone.name} is clear right now` }
-        : { icon: '\u25CF', text: 'Analyzing crowd patterns\u2026' },
+      (analysis.isIncreasing)
+        ? { icon: '⚠️', text: `Proactive: ${analysis.message}` }
+        : { icon: '✅', text: `Status: ${analysis.message}` },
+      (worstZone && worstZone.density > 0.7)
+        ? { icon: '🚫', text: `Avoid ${worstZone.name} (Predicted High)` }
+        : { icon: '✨', text: 'Flow is currently optimal' },
     ];
 
     SUGGESTION_IDS.forEach((id, i) => {
@@ -286,7 +286,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const iconEl = li.querySelector('.suggestion-icon');
       const textEl = li.querySelector('.sug-text');
       if (!item) {
-        // Hide unused slot without removing it
         li.style.opacity = '0';
         li.style.pointerEvents = 'none';
         return;
@@ -305,7 +304,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Bootstrap suggestion nodes once, then update data
   initSuggestionNodes();
   updateSmartSuggestions(simulator.state);
 });

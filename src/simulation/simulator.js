@@ -76,3 +76,4 @@ class DataSimulator {
 }
 
 export const simulator = new DataSimulator();
+export default simulator;

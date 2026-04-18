@@ -1,4 +1,4 @@
-import { simulator } from '../data/simulation.js';
+import { simulator } from '../simulation/simulator.js';
 
 export class Chatbot {
   constructor() {

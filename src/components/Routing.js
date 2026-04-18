@@ -1,4 +1,7 @@
-import { simulator } from '../data/simulation.js';
+import { simulator } from '../simulation/simulator.js';
+import { calculateDijkstraPath } from '../algorithms/dijkstra.js';
+import { routeCache } from '../utils/cache.js';
+import { CongestionPredictor } from '../ai/predictor.js';
 
 export class Routing {
   constructor(svgLayerId) {
@@ -40,69 +43,53 @@ export class Routing {
 
   getWeight(n1, n2) {
     let dist = this.getDistance(n1, n2);
-    // Add density penalty. A crowded zone acts as "longer" distance
     const state = simulator.state;
-    // Look up density for target node if it's a zone
     let penalty = 0;
+
     if (this.nodes[n2].isZone) {
       const zData = state.zones.find(z => z.id === n2);
       if (zData) {
-        // Severe penalty for > 0.7 density
+        const analysis = CongestionPredictor.getTrendAnalysis(state.historicalDensity);
+        
+        // 1. Reactive Penalty (Current Density)
         if (zData.density > 0.8) penalty += 2000;
         else if (zData.density > 0.6) penalty += 500;
+
+        // 2. Proactive Penalty (Predicted Trend)
+        if (analysis.isIncreasing) {
+          const trendMultiplier = analysis.confidence * 1000;
+          penalty += trendMultiplier;
+        }
+
+        // ── Structured Decision Logging
+        console.log(`[Routing Decision] Zone: ${zData.name}`);
+        console.log(` - Congestion Predicted: ${analysis.isIncreasing}`);
+        console.log(` - Confidence: ${(analysis.confidence * 100).toFixed(1)}%`);
+        console.log(` - Action: ${penalty > 0 ? `Applied +${Math.round(penalty)} weight penalty` : 'No penalty applied'}`);
+        console.log('────────────────────────────────────');
       }
     }
     return dist + penalty;
   }
 
   calculatePath(startId, endId) {
-    const distances = {};
-    const previous = {};
-    const nodes = new Set(Object.keys(this.nodes));
+    // Check cache first
+    const cached = routeCache.get(startId, endId);
+    if (cached) return cached;
 
-    // Initialize
-    for (let node of nodes) {
-      distances[node] = Infinity;
-      previous[node] = null;
-    }
-    distances[startId] = 0;
+    const path = calculateDijkstraPath(
+      startId, 
+      endId, 
+      this.nodes, 
+      this.edges, 
+      (n1, n2) => this.getWeight(n1, n2)
+    );
 
-    while (nodes.size > 0) {
-      // Get node with min distance
-      let current = null;
-      for (let node of nodes) {
-        if (!current || distances[node] < distances[current]) {
-          current = node;
-        }
-      }
-
-      if (current === endId) break;
-      if (distances[current] === Infinity) break;
-
-      nodes.delete(current);
-
-      // Neighbors
-      const neighbors = this.edges
-        .filter(e => e[0] === current || e[1] === current)
-        .map(e => e[0] === current ? e[1] : e[0]);
-
-      for (let neighbor of neighbors) {
-        if (!nodes.has(neighbor)) continue;
-        const alt = distances[current] + this.getWeight(current, neighbor);
-        if (alt < distances[neighbor]) {
-          distances[neighbor] = alt;
-          previous[neighbor] = current;
-        }
-      }
+    // Save to cache
+    if (path.length > 0) {
+      routeCache.set(startId, endId, path);
     }
 
-    // Trace back
-    const path = [];
-    let curr = endId;
-    while (curr) {
-      path.unshift(curr);
-      curr = previous[curr];
-    }
     return path;
   }
 
@@ -176,4 +163,3 @@ export class Routing {
     this.lastRouteMeta = null;
   }
 }
-

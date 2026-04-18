@@ -1,4 +1,5 @@
-import { simulator } from '../data/simulation.js';
+import { simulator } from '../simulation/simulator.js';
+import { CongestionPredictor } from '../ai/predictor.js';
 
 export class Heatmap {
   constructor(layerId) {
@@ -32,14 +33,9 @@ export class Heatmap {
   }
 
   getColorForDensity(density) {
-    // Muted SaaS palette — no neon
-    if (density < 0.4)  return '#22c55e'; // muted green
-    if (density < 0.75) return '#eab308'; // soft amber
-    return '#ef4444';                     // subdued red
-  }
-
-  getScaleForDensity(density) {
-    return 50 + (density * 100);
+    if (density < 0.4)  return '#22c55e';
+    if (density < 0.75) return '#eab308';
+    return '#ef4444';
   }
 
   update(zones) {
@@ -58,7 +54,8 @@ export class Heatmap {
       }
       if (!el) return;
 
-      if (zone.density >= 0.85) {
+      const isProactivelyCongested = CongestionPredictor.predictProactiveCongestion(zone, simulator.state.historicalDensity);
+      if (isProactivelyCongested) {
         el.classList.add('risky-zone');
       } else {
         el.classList.remove('risky-zone');
@@ -67,8 +64,6 @@ export class Heatmap {
       const color = this.getColorForDensity(zone.density);
       el.style.fill = color;
 
-      // Opacity-based congestion: subtle at low density, stronger at high
-      // Avoids harsh saturated blocks — looks professional
       const opacity = 0.18 + (zone.density * 0.65);
       el.style.fillOpacity = Math.min(opacity, 0.88);
       el.style.transition = 'fill 1.5s ease, fill-opacity 1.2s ease';
@@ -87,35 +82,29 @@ export class Heatmap {
     this.ttTitle.textContent = zone.name;
     this.ttDensity.textContent = `${Math.round(zone.density * 100)}%`;
     
-    // Map wait times if applicable
     this.ttWaitContainer.classList.add('hidden');
-    if (zone.id === 'food_court') {
-      const wt = state.waitTimes.find(w => w.id === 'food');
-      if (wt) {
-        this.ttWaitMsg.textContent = `${wt.time} mins`;
-        this.ttWaitContainer.classList.remove('hidden');
-      }
-    } else if (zone.id === 'restroom_north') {
-       const wt = state.waitTimes.find(w => w.id === 'rest');
+    if (zone.id === 'food_court' || zone.id === 'restroom_north') {
+      const wtId = zone.id === 'food_court' ? 'food' : 'rest';
+      const wt = state.waitTimes.find(w => w.id === wtId);
       if (wt) {
         this.ttWaitMsg.textContent = `${wt.time} mins`;
         this.ttWaitContainer.classList.remove('hidden');
       }
     }
 
-    // Suggestion text colour
-    if (zone.density > 0.8) {
-      this.ttSuggestion.textContent = 'High congestion. Use an alternate route.';
+    // NEW: Deep Prediction Integration
+    const analysis = CongestionPredictor.getTrendAnalysis(state.historicalDensity);
+    const confidenceLabel = CongestionPredictor.getConfidenceLabel(analysis.confidence);
+
+    if (zone.density > 0.8 || (analysis.isIncreasing && zone.density > 0.5)) {
+      this.ttSuggestion.innerHTML = `⚠️ High congestion expected in ${zone.name}<br/>
+                                     <small>Confidence: ${confidenceLabel} (${Math.round(analysis.confidence * 100)}%)</small>`;
       this.ttSuggestion.style.color = 'var(--red)';
-    } else if (zone.density < 0.4) {
-      this.ttSuggestion.textContent = 'Clear path. Good time to move.';
-      this.ttSuggestion.style.color = 'var(--green)';
     } else {
-      this.ttSuggestion.textContent = 'Moderate traffic. Proceed normally.';
-      this.ttSuggestion.style.color = 'var(--yellow)';
+      this.ttSuggestion.textContent = analysis.message;
+      this.ttSuggestion.style.color = analysis.isIncreasing ? 'var(--yellow)' : 'var(--green)';
     }
 
-    // Update position
     this.tooltip.classList.remove('hidden');
     this.tooltip.style.left = `${e.pageX}px`;
     this.tooltip.style.top = `${e.pageY - 15}px`;
@@ -147,17 +136,16 @@ export class Heatmap {
 
   updateSidebarData(zone, stateObj) {
     const state = stateObj || simulator.state;
+    const analysis = CongestionPredictor.getTrendAnalysis(state.historicalDensity);
+    const confidenceLabel = CongestionPredictor.getConfidenceLabel(analysis.confidence);
     
     this.zdTitle.textContent = zone.name;
     const pct = Math.round(zone.density * 100);
     this.zdDensity.textContent = `${pct}%`;
     this.zdDensity.className = zone.density > 0.75 ? 'text-danger' : (zone.density > 0.4 ? 'text-warning' : 'text-success');
 
-    // Trend bar logic
     this.zdTrend.style.width = `${pct}%`;
-    this.zdTrend.style.background = zone.density > 0.75
-      ? 'var(--red)'
-      : (zone.density > 0.4 ? 'var(--yellow)' : 'var(--green)');
+    this.zdTrend.style.background = zone.density > 0.75 ? 'var(--red)' : (zone.density > 0.4 ? 'var(--yellow)' : 'var(--green)');
 
     this.zdWaitContainer.style.display = 'none';
     if (zone.id === 'food_court' || zone.id === 'restroom_north') {
@@ -169,8 +157,10 @@ export class Heatmap {
       }
     }
 
-    if (zone.density > 0.8) this.zdSuggestion.textContent = "Critical density reached. Operations evaluating bypasses.";
-    else if (zone.density > 0.5) this.zdSuggestion.textContent = "Traffic flowing moderately. Standard queue speeds apply.";
-    else this.zdSuggestion.textContent = "Zone is below average capacity. Efficient entry/exit lines.";
+    if (analysis.isIncreasing && zone.density > 0.5) {
+      this.zdSuggestion.innerHTML = `<strong>Critical Alert:</strong> Congestion expected within 10 mins.<br/>Confidence: ${confidenceLabel}`;
+    } else {
+      this.zdSuggestion.textContent = analysis.message;
+    }
   }
 }

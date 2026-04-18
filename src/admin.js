@@ -1,4 +1,4 @@
-import { simulator } from './data/simulation.js';
+import { simulator } from './simulation/simulator.js';
 import Chart from 'chart.js/auto';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -16,9 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (navAlerts && alertsLog) {
     navAlerts.addEventListener('click', (e) => {
       e.preventDefault();
-      // Visual feedback: brief highlight pulse
-      alertsLog.classList.remove('highlight-pulse'); // reset if already active
-      void alertsLog.offsetWidth; // trigger reflow
+      alertsLog.classList.remove('highlight-pulse');
+      void alertsLog.offsetWidth;
       alertsLog.classList.add('highlight-pulse');
       setTimeout(() => alertsLog.classList.remove('highlight-pulse'), 1500);
     });

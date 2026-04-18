@@ -1,4 +1,4 @@
-import { simulator } from '../data/simulation.js';
+import { simulator } from '../simulation/simulator.js';
 
 export class Flow {
   constructor(layerId, routingInstance) {
@@ -47,7 +47,6 @@ export class Flow {
   createParticle(pathId, edge, delay) {
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('r', '2');
-    // Subtle muted blue — no neon glow
     circle.setAttribute('fill', 'rgba(120,180,255,0.55)');
     circle.setAttribute('opacity', '0.7');
 
@@ -79,11 +78,10 @@ export class Flow {
       }
 
       const avgD = (d1 + d2) / 2;
-      // Congestion → slower particles (4s base, up to 12s max)
+      // Congestion → slower particles
       const newDur = 4 + (avgD * 8);
       p.anim.setAttribute('dur', `${newDur.toFixed(1)}s`);
 
-      // Subtle color shift: blue → muted amber on congestion
       if (avgD > 0.8) {
         p.circle.setAttribute('fill', 'rgba(232,160,32,0.45)');
       } else if (avgD > 0.55) {

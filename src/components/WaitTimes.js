@@ -34,7 +34,7 @@ export class WaitTimes {
         this.container.appendChild(li);
       }
 
-      // Only update the value span if it changed (no full re-render flicker)
+      // Only update the value span if it changed
       const valSpan = li.querySelector('.wait-val');
       const newText  = `${item.time} min`;
       const newClass = `wait-val ${this.getColorClass(item.time)}`;
