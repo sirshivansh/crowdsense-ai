@@ -1408,3 +1408,77 @@ select option {
   overflow-y: auto;
   flex: 1
 }
+
+/* ── Emergency Mode ─────────────────────────────────────────── */
+.emergency-btn {
+  background: transparent;
+  border: 1px solid var(--red);
+  color: var(--red);
+  padding: 0 10px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background var(--t1) var(--ease), color var(--t1) var(--ease);
+}
+
+.emergency-btn:hover {
+  background: var(--red-dim);
+}
+
+.emergency-btn.emergency-active {
+  background: var(--red);
+  color: #fff;
+  animation: emergencyPulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes emergencyPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(224, 80, 80, 0.4) }
+  100% { box-shadow: 0 0 0 6px rgba(224, 80, 80, 0) }
+}
+
+body.emergency-mode .map-wrapper {
+  border: 2px solid var(--red);
+  border-radius: var(--r-lg);
+  transition: border var(--t2) var(--ease);
+}
+
+/* ── Emergency Banner ────────────────────────────────────────── */
+.emergency-banner {
+  background: var(--red);
+  color: #fff;
+  padding: 10px 0;
+  text-align: center;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 10000;
+  box-shadow: 0 4px 20px rgba(224, 80, 80, 0.4);
+}
+
+.emergency-banner.hidden {
+  display: none;
+}
+
+.banner-icon {
+  animation: blinkWarn 1s infinite alternate;
+}
+
+.banner-subtext {
+  font-weight: 400;
+  opacity: 0.9;
+  font-size: 11px;
+}
+
+@keyframes blinkWarn {
+  from { opacity: 1; }
+  to { opacity: 0.2; }
+}

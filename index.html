@@ -13,6 +13,13 @@
 </head>
 
 <body>
+  <!-- Emergency Banner (Hidden by default) -->
+  <div id="emergency-banner" class="emergency-banner hidden" role="alert" aria-live="assertive">
+    <span class="banner-icon">⚠️</span>
+    <strong>EMERGENCY MODE ACTIVE</strong>
+    <span class="banner-subtext"> — Routing prioritized for rapid evacuation</span>
+  </div>
+
   <!-- Header / Navigation -->
   <header class="topbar glass-panel">
     <div class="logo">
@@ -22,6 +29,7 @@
     <nav class="topbar-actions" aria-label="Main navigation">
       <button class="icon-btn active" aria-label="View heatmap of crowd density" id="btn-heatmap" aria-pressed="true">🌡️</button>
       <button class="icon-btn" aria-label="Find optimal route between zones" id="btn-routing" aria-pressed="false">🗺️</button>
+      <button class="emergency-btn" id="btn-emergency" aria-label="Toggle emergency evacuation mode">🚨 Emergency Mode</button>
       <a href="/admin.html" class="outline-btn">Admin Dashboard</a>
     </nav>
   </header>

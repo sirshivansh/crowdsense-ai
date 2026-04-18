@@ -6,6 +6,7 @@ import { WaitTimes } from './components/WaitTimes.js';
 import { Chatbot } from './components/Chatbot.js';
 import { CongestionPredictor } from './ai/predictor.js';
 import { firebaseService } from './services/firebaseService.js';
+import { routeCache } from './utils/cache.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // ── Bootstrap components
@@ -306,4 +307,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initSuggestionNodes();
   updateSmartSuggestions(simulator.state);
+
+  // ── Emergency Evacuation Mode
+  const emergencyBtn = document.getElementById('btn-emergency');
+  let emergencyActive = false;
+
+  emergencyBtn?.addEventListener('click', () => {
+    emergencyActive = !emergencyActive;
+    const scenario = emergencyActive ? 'emergency' : 'normal';
+
+    // 1. Switch simulator scenario (spikes densities, blocks zones, fires alerts)
+    simulator.simulateScenario(scenario);
+
+    // 2. Invalidate route cache — weights have changed
+    routeCache.clear();
+
+    // 3. Log to Firebase
+    if (emergencyActive) {
+      firebaseService.logPrediction({
+        type: 'emergency',
+        message: 'Evacuation mode triggered by operator',
+        confidence: 1.0,
+      });
+      firebaseService.triggerAlertIfHighDensity(simulator.state.zones, 0.7);
+    }
+
+    // 4. Update button state
+    emergencyBtn.textContent = emergencyActive ? '✅ End Emergency' : '🚨 Emergency Mode';
+    emergencyBtn.classList.toggle('emergency-active', emergencyActive);
+    document.body.classList.toggle('emergency-mode', emergencyActive);
+    
+    // Toggle UI Banner
+    const banner = document.getElementById('emergency-banner');
+    if (banner) banner.classList.toggle('hidden', !emergencyActive);
+
+    const logMsg = emergencyActive ? "🚨 Emergency Mode Activated" : "ℹ️ Normal Mode Restored";
+    console.log(logMsg);
+    console.log(`[Emergency] Mode switched to: ${scenario}`);
+  });
 });

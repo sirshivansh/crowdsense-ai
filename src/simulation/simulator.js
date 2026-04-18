@@ -2,6 +2,8 @@
 class DataSimulator {
   constructor() {
     this.listeners = {};
+    this.mode = 'normal'; // 'normal' | 'emergency'
+    this.blockedZones = new Set();
     
     // Initial State
     this.state = {
@@ -23,6 +25,43 @@ class DataSimulator {
     };
 
     this.startSimulation();
+  }
+
+  /**
+   * Switches the simulator into a named scenario.
+   * 'emergency' — spikes densities, blocks interior zones, fires alerts.
+   * 'normal'    — clears blocks and lets the random walk resume.
+   */
+  simulateScenario(scenario) {
+    this.mode = scenario;
+
+    if (scenario === 'emergency') {
+      // Spike densities across all zones
+      this.state.zones.forEach(zone => {
+        zone.density = Math.min(1.0, zone.density + 0.3 + Math.random() * 0.2);
+      });
+
+      // Block interior zones — gates stay open as exits
+      this.blockedZones.clear();
+      this.blockedZones.add('food_court');
+      this.blockedZones.add('restroom_north');
+
+      // Immediately push updates through existing event pipeline
+      this.emit('update:heatmap', this.state.zones);
+      this.emit('alert', '🚨 EMERGENCY EVACUATION — proceed to nearest exit immediately');
+      this.state.zones.forEach(z => {
+        if (z.density > 0.85) {
+          this.emit('alert', `Critical density at ${z.name} — avoid this zone`);
+        }
+      });
+
+      console.log('[Simulator] Emergency scenario activated');
+    } else {
+      // Return to normal
+      this.blockedZones.clear();
+      this.emit('update:heatmap', this.state.zones);
+      console.log('[Simulator] Normal mode restored');
+    }
   }
 
   on(event, callback) {

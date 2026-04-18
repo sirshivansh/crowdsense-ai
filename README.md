@@ -191,16 +191,20 @@ Admin dashboard: `http://localhost:5173/admin.html`
 
 ---
 
-## Future Scope
+## 🔮 Future Scope
 
-| Direction | Intent |
-|---|---|
-| Computer Vision | Replace simulated density with camera-derived headcounts |
-| Sequence Forecasting | LSTM or gradient-boosted models for longer-horizon prediction |
-| Emergency Mode | One-click evacuation routing with zone priority overrides |
-| Vertex AI Deployment | Move prediction model to GCP for scalable inference |
-| Staff Coordination API | Push alerts to ground team mobile devices via REST |
-| Multi-Venue Tenancy | Firestore multi-tenant architecture for stadium networks |
+CrowdSense AI is designed as an extensible intelligence platform. The current system establishes a real-time decision pipeline, which can be further enhanced in the following directions:
+
+| Direction | Evolution |
+|----------|----------|
+| **Computer Vision Integration** | Replace simulated inputs with real-time crowd detection using CCTV and edge-based inference |
+| **Advanced Sequence Forecasting** | Extend short-term trend analysis to LSTM or gradient-boosted models for multi-minute horizon prediction |
+| **Emergency Evacuation Mode** | Introduce priority-based routing for rapid evacuation with dynamic zone overrides |
+| **Vertex AI Deployment** | Migrate prediction engine to Google Cloud Vertex AI for scalable, production-grade inference |
+| **Operational Integration APIs** | Enable real-time alert delivery to on-ground staff via mobile and control dashboards |
+| **Multi-Venue Architecture** | Extend Firestore design to support multi-stadium deployments with tenant isolation |
+
+These enhancements build directly on the existing event-driven architecture, allowing CrowdSense AI to evolve from a simulation system into a fully deployable intelligent infrastructure.
 
 ---
 

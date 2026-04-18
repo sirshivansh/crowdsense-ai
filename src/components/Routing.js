@@ -41,19 +41,43 @@ export class Routing {
     return Math.sqrt(dx * dx + dy * dy);
   }
 
+  // Exit nodes — used during emergency to bias routing toward gates
+  static EXIT_NODES = new Set(['gate_a', 'gate_b']);
+
   getWeight(n1, n2) {
     let dist = this.getDistance(n1, n2);
     const state = simulator.state;
+    const isEmergency = simulator.mode === 'emergency';
     let penalty = 0;
+
+    // ── Emergency: blocked zones are impassable
+    if (isEmergency && simulator.blockedZones.has(n2)) {
+      console.log(`[Routing Decision] Zone: ${n2} [BLOCKED]`);
+      console.log({
+        node: n2,
+        isBlocked: true,
+        isExit: Routing.EXIT_NODES.has(n2),
+        finalWeight: Math.round(dist + 50000),
+        mode: "emergency"
+      });
+      console.log('────────────────────────────────────');
+      return dist + 50000;
+    }
+
+    // ── Emergency: reward moving toward exits
+    if (isEmergency && Routing.EXIT_NODES.has(n2)) {
+      penalty -= 500; // negative penalty = preference
+    }
 
     if (this.nodes[n2].isZone) {
       const zData = state.zones.find(z => z.id === n2);
       if (zData) {
         const analysis = CongestionPredictor.getTrendAnalysis(state.historicalDensity);
+        const multiplier = isEmergency ? 3 : 1; // 3× aggressive in emergency
         
         // 1. Reactive Penalty (Current Density)
-        if (zData.density > 0.8) penalty += 2000;
-        else if (zData.density > 0.6) penalty += 500;
+        if (zData.density > 0.8) penalty += 2000 * multiplier;
+        else if (zData.density > 0.6) penalty += 500 * multiplier;
 
         // 2. Proactive Penalty (Predicted Trend)
         if (analysis.isIncreasing) {
@@ -62,10 +86,19 @@ export class Routing {
         }
 
         // ── Structured Decision Logging
-        console.log(`[Routing Decision] Zone: ${zData.name}`);
+        console.log(`[Routing Decision] Zone: ${zData.name}${isEmergency ? ' [EMERGENCY]' : ''}`);
+        
+        // Detailed log object for developers/audit
+        console.log({
+          node: n2,
+          isBlocked: isEmergency && simulator.blockedZones.has(n2),
+          isExit: Routing.EXIT_NODES.has(n2),
+          finalWeight: Math.round(dist + penalty),
+          mode: isEmergency ? "emergency" : "normal"
+        });
+
         console.log(` - Congestion Predicted: ${analysis.isIncreasing}`);
-        console.log(` - Confidence: ${(analysis.confidence * 100).toFixed(1)}%`);
-        console.log(` - Action: ${penalty > 0 ? `Applied +${Math.round(penalty)} weight penalty` : 'No penalty applied'}`);
+        console.log(` - Action: ${penalty > 0 ? `Applied +${Math.round(penalty)} weight penalty` : penalty < 0 ? `Exit bonus: ${Math.round(penalty)}` : 'No penalty applied'}`);
         console.log('────────────────────────────────────');
       }
     }
