@@ -1482,3 +1482,23 @@ body.emergency-mode .map-wrapper {
   from { opacity: 1; }
   to { opacity: 0.2; }
 }
+/* ── TASK-SPECIFIC UI ENHANCEMENTS ── */
+.status-panel { padding-bottom: 8px !important; }
+.status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.status-pill { background: var(--bg-raised); border: 1px solid var(--border-faint); padding: 4px 8px; border-radius: var(--r-sm); font-size: 9px; display: flex; align-items: center; gap: 5px; color: var(--text-secondary); }
+.dot { width: 6px; height: 6px; border-radius: 50%; }
+.dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.dot.grey { background: var(--text-tertiary); }
+.demo-grid { display: flex; gap: 8px; }
+.scenario-select { flex: 1; height: 32px; font-size: 11px; background: var(--bg-raised); border: 1px solid var(--border-md); border-radius: var(--r-sm); color: var(--text-primary); padding: 0 8px; }
+.demo-btn { background: var(--bg-elevated); border: 1px solid var(--border-md); color: var(--text-primary); height: 32px; padding: 0 12px; border-radius: var(--r-sm); font-weight: 600; font-size: 11px; white-space: nowrap; }
+.demo-btn:hover { background: var(--bg-hover); border-color: var(--accent); }
+.route-explanation { background: var(--accent-soft); border-left: 2px solid var(--accent); padding: 8px 12px; margin-top: 10px; border-radius: 0 var(--r-sm) var(--r-sm) 0; display: flex; gap: 10px; align-items: flex-start; animation: slideIn 0.3s ease; }
+.explanation-icon { font-size: 14px; }
+.route-explanation p { font-size: 11px; color: var(--text-secondary); line-height: 1.4; margin: 0; }
+.route-metrics-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; background: var(--bg-raised); border: 1px solid var(--border-faint); border-radius: var(--r-sm); margin-top: 8px; overflow: hidden; }
+.metric { display: flex; flex-direction: column; align-items: center; padding: 6px 0; }
+.metric .m-val { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--text-primary); }
+.metric .m-lbl { font-size: 8px; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.05em; }
+.border-l { border-left: 1px solid var(--border-faint); }
+@keyframes slideIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }

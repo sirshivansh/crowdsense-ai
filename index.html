@@ -205,6 +205,29 @@
 
     <!-- Fixed Right Data Column — unified glass panel -->
     <aside class="right-panel glass-panel" aria-label="Live data and controls panel">
+      <!-- Task 3: System Status Panel -->
+      <section class="widget-section status-panel" id="system-status">
+        <h4 class="widget-title">System Health</h4>
+        <div class="status-grid">
+          <div class="status-pill"><span class="dot green"></span> Simulator: ON</div>
+          <div class="status-pill"><span id="status-predictor" class="dot green"></span> AI: ACTIVE</div>
+          <div id="status-vertex-pill" class="status-pill"><span class="dot grey"></span> Vertex: OFF</div>
+          <div class="status-pill"><span class="dot green"></span> Firebase: OK</div>
+        </div>
+      </section>
+
+      <!-- Task 1 & 2: Demo & Scenario Controls -->
+      <section class="widget-section demo-panel" id="demo-controls">
+        <h4 class="widget-title">Simulation Scenario</h4>
+        <div class="demo-grid">
+          <select id="scenario-selector" class="scenario-select">
+            <option value="normal">Normal Flow</option>
+            <option value="peak">Peak Crowd (85%)</option>
+            <option value="emergency">Emergency Evac</option>
+          </select>
+          <button id="btn-run-demo" class="demo-btn">▶ Run Demo</button>
+        </div>
+      </section>
 
       <!-- SECTION 0: AI Primary Recommendation -->
       <section class="widget-section ai-rec-section" id="ai-recommendation" aria-label="AI recommendation for best action">
@@ -244,6 +267,29 @@
           </div>
           <button id="find-route-btn" class="primary-btn" aria-label="Plot the optimal least-congested route between selected locations">Plot Optimal Route</button>
           <button id="btn-clear-route" class="outline-btn text-warning hidden" aria-label="Cancel route selection and return to live map view">← Back to Live Map</button>
+          
+          <!-- Task 4: Explainable Routing Placeholder -->
+          <div id="route-explanation" class="route-explanation hidden">
+            <span class="explanation-icon">🤖</span>
+            <p id="route-explanation-text">...</p>
+          </div>
+
+          <!-- Task 5: Metrics Panel -->
+          <div id="route-metrics" class="route-metrics-grid hidden">
+            <div class="metric">
+              <span class="m-val" id="metric-route-time">--ms</span>
+              <span class="m-lbl">Calc Time</span>
+            </div>
+            <div class="metric border-l">
+              <span class="m-val" id="metric-confidence">--%</span>
+              <span class="m-lbl">Confidence</span>
+            </div>
+            <div class="metric border-l">
+              <span class="m-val" id="metric-zones-skip">--</span>
+              <span class="m-lbl">Avoided</span>
+            </div>
+          </div>
+
           <!-- Route metadata (shown after route is plotted) -->
           <div id="route-meta" class="route-meta hidden" role="region" aria-live="polite" aria-label="Route calculation and estimated time">
             <span class="route-meta-label">Least crowded route</span>

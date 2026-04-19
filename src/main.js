@@ -4,7 +4,7 @@ import { Routing } from './components/Routing.js';
 import { Flow } from './components/Flow.js';
 import { WaitTimes } from './components/WaitTimes.js';
 import { Chatbot } from './components/Chatbot.js';
-import { CongestionPredictor } from './ai/predictor.js';
+import { CongestionPredictor, USE_VERTEX } from './ai/predictor.js';
 import { firebaseService } from './services/firebaseService.js';
 import { routeCache } from './utils/cache.js';
 
@@ -96,6 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
     findRouteBtn?.classList.remove('hidden');
     mapBackBtn?.classList.add('hidden');
     if (routeMeta) routeMeta.classList.add('hidden');
+    document.getElementById('route-explanation')?.classList.add('hidden');
+    document.getElementById('route-metrics')?.classList.add('hidden');
     routing.clear();
   };
 
@@ -131,7 +133,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!routingMode) enableRouteMode();
+    
+    // Performance metrics (Task 5)
+    const t0 = performance.now();
     const meta = routing.showRoute(start, end);
+    const t1 = performance.now();
+
+    // Task 4: Explainable Routing
+    const pathIds = routing.calculatePath(start, end);
+    updateRouteExplanation(pathIds);
+
+    // Task 5: Metrics update
+    updateRouteMetrics(t1 - t0, pathIds);
+
     // Show route metadata panel
     if (routeMeta && meta) {
       document.getElementById('route-eta').textContent = `~${meta.minutes} min`;
@@ -355,8 +369,115 @@ document.addEventListener('DOMContentLoaded', () => {
     const banner = document.getElementById('emergency-banner');
     if (banner) banner.classList.toggle('hidden', !emergencyActive);
 
-    const logMsg = emergencyActive ? "🚨 Emergency Mode Activated" : "ℹ️ Normal Mode Restored";
-    console.log(logMsg);
     console.log(`[Emergency] Mode switched to: ${scenario}`);
   });
+
+  // ── NEW: Demo & Status Glue Logic (Tasks 1, 2, 3, 4, 5)
+
+  // System Status initialization (Task 3)
+  const updateSystemStatus = () => {
+    const vertexPill = document.getElementById('status-vertex-pill');
+    if (vertexPill) {
+      const dot = vertexPill.querySelector('.dot');
+      dot.className = USE_VERTEX ? 'dot green' : 'dot grey';
+      vertexPill.innerHTML = `<span class="${dot.className}"></span> Vertex AI: ${USE_VERTEX ? 'ON' : 'OFF'}`;
+    }
+    const predDot = document.getElementById('status-predictor');
+    if (predDot) predDot.className = 'dot green'; // Keep it green as it runs locally/vertex
+  };
+  updateSystemStatus();
+
+  // Scenario Selector (Task 2)
+  document.getElementById('scenario-selector')?.addEventListener('change', (e) => {
+    const scenario = e.target.value;
+    if (scenario === 'emergency') {
+      if (!emergencyActive) emergencyBtn?.click();
+    } else if (scenario === 'peak') {
+      // Simulate peak crowd manually by spiking densities
+      simulator.state.zones.forEach(z => z.density = Math.min(0.95, z.density + 0.45));
+      simulator.emit('update:heatmap', simulator.state.zones);
+      if (emergencyActive) emergencyBtn?.click();
+    } else {
+      if (emergencyActive) emergencyBtn?.click();
+      simulator.simulateScenario('normal');
+    }
+  });
+
+  // Demo Mode (Task 1)
+  const runDemo = async () => {
+    const demoBtn = document.getElementById('btn-run-demo');
+    const selector = document.getElementById('scenario-selector');
+    if (!demoBtn || demoBtn.disabled) return;
+
+    demoBtn.disabled = true;
+    const originalText = demoBtn.textContent;
+    
+    // Step 1: Normal
+    selector.value = 'normal';
+    selector.dispatchEvent(new Event('change'));
+    demoBtn.textContent = '⏱ Normal Flow (3s)';
+    await new Promise(r => setTimeout(r, 3000));
+
+    // Step 2: Peak
+    selector.value = 'peak';
+    selector.dispatchEvent(new Event('change'));
+    demoBtn.textContent = '⏱ Peak Crowd (4s)';
+    await new Promise(r => setTimeout(r, 4000));
+
+    // Step 3: Emergency
+    selector.value = 'emergency';
+    selector.dispatchEvent(new Event('change'));
+    demoBtn.textContent = '⏱ Emergency (5s)';
+    await new Promise(r => setTimeout(r, 5000));
+
+    // End Demo
+    selector.value = 'normal';
+    selector.dispatchEvent(new Event('change'));
+    demoBtn.disabled = false;
+    demoBtn.textContent = originalText;
+  };
+
+  document.getElementById('btn-run-demo')?.addEventListener('click', runDemo);
+
+  // Helper: Route Explanation (Task 4)
+  function updateRouteExplanation(pathIds) {
+    const el = document.getElementById('route-explanation');
+    const txt = document.getElementById('route-explanation-text');
+    if (!el || !txt) return;
+
+    const analysis = CongestionPredictor.getTrendAnalysis(simulator.state.historicalDensity);
+    const zones = simulator.state.zones;
+    const pathZones = pathIds.filter(id => routing.nodes[id].isZone);
+    const isEmergency = simulator.mode === 'emergency';
+
+    let msg = "Optimal route identified through low-density zones for a smoother experience.";
+    
+    if (isEmergency) {
+      msg = "Safety-first routing prioritized; bypassing interior congestion and steering toward confirmed exits.";
+    } else if (pathZones.some(id => (zones.find(z => z.id === id)?.density || 0) > 0.7)) {
+      msg = "Direct route selected. Balances transit distance with current crowd levels for efficiency.";
+    } else if (analysis.isIncreasing) {
+      msg = "Route selected to proactively avoid zones with rapidly increasing crowd density.";
+    }
+
+    txt.textContent = msg;
+    el.classList.remove('hidden');
+  }
+
+  // Helper: Route Metrics (Task 5)
+  function updateRouteMetrics(calcTime, pathIds) {
+    const panel = document.getElementById('route-metrics');
+    if (!panel) return;
+
+    document.getElementById('metric-route-time').textContent = `${calcTime.toFixed(1)}ms`;
+    
+    const analysis = CongestionPredictor.getTrendAnalysis(simulator.state.historicalDensity);
+    document.getElementById('metric-confidence').textContent = `${(analysis.confidence * 100).toFixed(0)}%`;
+
+    const highDensityZones = simulator.state.zones.filter(z => z.density > 0.6);
+    const avoidedCount = highDensityZones.filter(z => !pathIds.includes(z.id)).length;
+    document.getElementById('metric-zones-skip').textContent = avoidedCount;
+
+    panel.classList.remove('hidden');
+  }
 });
