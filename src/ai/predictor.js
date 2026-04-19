@@ -13,7 +13,7 @@ import { getPredictionFromVertex } from '../services/vertexService.js';
  * Feature flag — flip to true to enable the Vertex AI inference path.
  * When false, the system runs entirely on the local WRC engine.
  */
-export const USE_VERTEX = false;
+export const USE_VERTEX = true;
 
 export class CongestionPredictor {
   /**

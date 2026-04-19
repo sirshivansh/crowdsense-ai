@@ -42,10 +42,27 @@ export class Routing {
   }
 
   // Exit nodes — used during emergency to bias routing toward gates.
-  // EMERGENCY WEIGHT STRATEGY: blocked zones receive +50000 (impassable),
-  // exit nodes receive -500 (attraction), and all density penalties are
-  // multiplied 3× to aggressively steer foot traffic toward gates.
+  // EMERGENCY WEIGHT STRATEGY: blocked zones receive BLOCKED_ZONE_PENALTY (impassable),
+  // exit nodes receive EXIT_ATTRACTION_BONUS, and all density penalties are
+  // multiplied EMERGENCY_MULTIPLIER× to aggressively steer foot traffic toward gates.
   static EXIT_NODES = new Set(['gate_a', 'gate_b']);
+
+  /** @constant {number} Penalty applied to blocked zones — effectively impassable */
+  static BLOCKED_ZONE_PENALTY = 50000;
+  /** @constant {number} Negative weight (attraction) for exit nodes during emergency */
+  static EXIT_ATTRACTION_BONUS = -500;
+  /** @constant {number} Penalty multiplier during emergency mode (3× normal) */
+  static EMERGENCY_MULTIPLIER = 3;
+  /** @constant {number} Weight penalty for zones with density > 0.8 */
+  static HIGH_DENSITY_PENALTY = 2000;
+  /** @constant {number} Weight penalty for zones with density > 0.6 */
+  static MEDIUM_DENSITY_PENALTY = 500;
+  /** @constant {number} Base multiplier for trend-based proactive penalty */
+  static TREND_PENALTY_BASE = 1000;
+  /** @constant {number} Density threshold for high congestion penalty */
+  static HIGH_DENSITY_THRESHOLD = 0.8;
+  /** @constant {number} Density threshold for medium congestion penalty */
+  static MEDIUM_DENSITY_THRESHOLD = 0.6;
 
   getWeight(n1, n2) {
     let dist = this.getDistance(n1, n2);
@@ -60,31 +77,31 @@ export class Routing {
         node: n2,
         isBlocked: true,
         isExit: Routing.EXIT_NODES.has(n2),
-        finalWeight: Math.round(dist + 50000),
+        finalWeight: Math.round(dist + Routing.BLOCKED_ZONE_PENALTY),
         mode: "emergency"
       });
       console.log('────────────────────────────────────');
-      return dist + 50000;
+      return dist + Routing.BLOCKED_ZONE_PENALTY;
     }
 
     // ── Emergency: reward moving toward exits
     if (isEmergency && Routing.EXIT_NODES.has(n2)) {
-      penalty -= 500; // negative penalty = preference
+      penalty += Routing.EXIT_ATTRACTION_BONUS; // negative = preference
     }
 
     if (this.nodes[n2].isZone) {
       const zData = state.zones.find(z => z.id === n2);
       if (zData) {
         const analysis = CongestionPredictor.getTrendAnalysis(state.historicalDensity);
-        const multiplier = isEmergency ? 3 : 1; // 3× aggressive in emergency
+        const multiplier = isEmergency ? Routing.EMERGENCY_MULTIPLIER : 1;
         
         // 1. Reactive Penalty (Current Density)
-        if (zData.density > 0.8) penalty += 2000 * multiplier;
-        else if (zData.density > 0.6) penalty += 500 * multiplier;
+        if (zData.density > Routing.HIGH_DENSITY_THRESHOLD) penalty += Routing.HIGH_DENSITY_PENALTY * multiplier;
+        else if (zData.density > Routing.MEDIUM_DENSITY_THRESHOLD) penalty += Routing.MEDIUM_DENSITY_PENALTY * multiplier;
 
         // 2. Proactive Penalty (Predicted Trend)
         if (analysis.isIncreasing) {
-          const trendMultiplier = analysis.confidence * 1000;
+          const trendMultiplier = analysis.confidence * Routing.TREND_PENALTY_BASE;
           penalty += trendMultiplier;
         }
 

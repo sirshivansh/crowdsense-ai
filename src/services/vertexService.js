@@ -1,5 +1,6 @@
 /**
- * Vertex AI Service Layer — CrowdSense AI
+ * @module vertexService
+ * @description Vertex AI Service Layer — CrowdSense AI New
  *
  * This service acts as the integration point for Google Cloud Vertex AI.
  * Currently running in SIMULATION mode — replace the stub body of
@@ -10,8 +11,15 @@
  *   1. Deploy CongestionPredictor as a Vertex AI custom model
  *   2. Set VERTEX_ENDPOINT_URL to your endpoint resource name
  *   3. Replace simulateVertexResponse() with a real authenticated fetch
+ *
+ * @see {@link https://cloud.google.com/vertex-ai/docs/predictions/overview}
  */
 
+/**
+ * Vertex AI prediction endpoint URL.
+ * Replace YOUR_ENDPOINT_ID with the deployed model's endpoint identifier.
+ * @constant {string}
+ */
 const VERTEX_ENDPOINT_URL = 'https://us-central1-aiplatform.googleapis.com/v1/projects/crowdsense-ai-7d584/locations/us-central1/endpoints/YOUR_ENDPOINT_ID:predict';
 
 /**

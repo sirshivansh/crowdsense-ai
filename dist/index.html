@@ -9,21 +9,43 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="/assets/main-hgDKK4PV.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/simulation-WJNDuI5b.js">
-  <link rel="stylesheet" crossorigin href="/assets/simulation-D8lqKsxJ.css">
+  <script type="module" crossorigin src="/assets/main-DVkrwmzC.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/simulator-D-2kbl6s.js">
+  <link rel="stylesheet" crossorigin href="/assets/simulator-Cfb31arl.css">
 </head>
 
 <body>
+  <!-- Emergency Banner (Hidden by default) -->
+  <div id="emergency-banner" class="emergency-banner hidden" role="alert" aria-live="assertive">
+    <span class="banner-icon">⚠️</span>
+    <strong>EMERGENCY MODE ACTIVE</strong>
+    <span class="banner-subtext"> — Routing prioritized for rapid evacuation</span>
+  </div>
+
   <!-- Header / Navigation -->
   <header class="topbar glass-panel">
     <div class="logo">
       <span class="logo-icon" aria-hidden="true">🏟️</span>
       <h1>CrowdSense <strong>AI</strong></h1>
     </div>
+    <div class="topbar-center">
+      <div class="attendance-chip" role="status" aria-label="Current stadium attendance">
+        <span class="att-label">Attendance</span>
+        <span class="att-value" id="live-attendance">54,200</span>
+      </div>
+      <div class="live-indicator" role="status" aria-label="Live data streaming status">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span class="live-label">Live</span>
+      </div>
+      <div class="attendance-chip" role="status" aria-label="Overall stadium safety score">
+        <span class="att-label">Safety</span>
+        <span class="att-value" id="safety-score">--</span>
+      </div>
+    </div>
     <nav class="topbar-actions" aria-label="Main navigation">
       <button class="icon-btn active" aria-label="View heatmap of crowd density" id="btn-heatmap" aria-pressed="true">🌡️</button>
       <button class="icon-btn" aria-label="Find optimal route between zones" id="btn-routing" aria-pressed="false">🗺️</button>
+      <button class="emergency-btn" id="btn-emergency" aria-label="Toggle emergency evacuation mode">🚨 Emergency Mode</button>
       <a href="/admin.html" class="outline-btn">Admin Dashboard</a>
     </nav>
   </header>
@@ -199,6 +221,31 @@
 
     <!-- Fixed Right Data Column — unified glass panel -->
     <aside class="right-panel glass-panel" aria-label="Live data and controls panel">
+      <!-- Task 3: System Status Panel -->
+      <section class="widget-section status-panel" id="system-status" role="status" aria-label="System health indicators">
+        <h4 class="widget-title">System Health</h4>
+        <div class="status-grid">
+          <div class="status-pill"><span class="dot green"></span> Simulator: ON</div>
+          <div class="status-pill"><span id="status-predictor" class="dot green"></span> AI: ACTIVE</div>
+          <div id="status-vertex-pill" class="status-pill"><span class="dot grey"></span> Vertex: OFF</div>
+          <div class="status-pill"><span class="dot green"></span> Firebase: OK</div>
+          <div id="status-auth-pill" class="status-pill"><span class="dot grey"></span> Auth: --</div>
+          <div class="status-pill"><span class="dot green"></span> Analytics: ON</div>
+        </div>
+      </section>
+
+      <!-- Task 1 & 2: Demo & Scenario Controls -->
+      <section class="widget-section demo-panel" id="demo-controls" aria-label="Simulation scenario controls">
+        <h4 class="widget-title">Simulation Scenario</h4>
+        <div class="demo-grid">
+          <select id="scenario-selector" class="scenario-select" aria-label="Select a simulation scenario">
+            <option value="normal">Normal Flow</option>
+            <option value="peak">Peak Crowd (85%)</option>
+            <option value="emergency">Emergency Evac</option>
+          </select>
+          <button id="btn-run-demo" class="demo-btn" aria-label="Run automated demo scenario sequence">▶ Run Demo</button>
+        </div>
+      </section>
 
       <!-- SECTION 0: AI Primary Recommendation -->
       <section class="widget-section ai-rec-section" id="ai-recommendation" aria-label="AI recommendation for best action">
@@ -238,6 +285,29 @@
           </div>
           <button id="find-route-btn" class="primary-btn" aria-label="Plot the optimal least-congested route between selected locations">Plot Optimal Route</button>
           <button id="btn-clear-route" class="outline-btn text-warning hidden" aria-label="Cancel route selection and return to live map view">← Back to Live Map</button>
+          
+          <!-- Task 4: Explainable Routing Placeholder -->
+          <div id="route-explanation" class="route-explanation hidden">
+            <span class="explanation-icon">🤖</span>
+            <p id="route-explanation-text">...</p>
+          </div>
+
+          <!-- Task 5: Metrics Panel -->
+          <div id="route-metrics" class="route-metrics-grid hidden">
+            <div class="metric">
+              <span class="m-val" id="metric-route-time">--ms</span>
+              <span class="m-lbl">Calc Time</span>
+            </div>
+            <div class="metric border-l">
+              <span class="m-val" id="metric-confidence">--%</span>
+              <span class="m-lbl">Confidence</span>
+            </div>
+            <div class="metric border-l">
+              <span class="m-val" id="metric-zones-skip">--</span>
+              <span class="m-lbl">Avoided</span>
+            </div>
+          </div>
+
           <!-- Route metadata (shown after route is plotted) -->
           <div id="route-meta" class="route-meta hidden" role="region" aria-live="polite" aria-label="Route calculation and estimated time">
             <span class="route-meta-label">Least crowded route</span>

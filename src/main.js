@@ -5,10 +5,26 @@ import { Flow } from './components/Flow.js';
 import { WaitTimes } from './components/WaitTimes.js';
 import { Chatbot } from './components/Chatbot.js';
 import { CongestionPredictor, USE_VERTEX } from './ai/predictor.js';
-import { firebaseService } from './services/firebaseService.js';
+import { firebaseService, initAuth, onAuthChanged } from './services/firebaseService.js';
 import { routeCache } from './utils/cache.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // ── Firebase Auth — establish anonymous session before any Firestore writes
+  await initAuth();
+  onAuthChanged((uid) => {
+    const authPill = document.getElementById('status-auth-pill');
+    if (authPill) {
+      const dot = authPill.querySelector('.dot');
+      if (uid) {
+        dot.className = 'dot green';
+        authPill.lastChild.textContent = ' Auth: OK';
+      } else {
+        dot.className = 'dot grey';
+        authPill.lastChild.textContent = ' Auth: OFF';
+      }
+    }
+  });
+
   // ── Bootstrap components
   const heatmap = new Heatmap('heatmap-layer');
   const routing = new Routing('route-layer');
@@ -20,6 +36,37 @@ document.addEventListener('DOMContentLoaded', () => {
   heatmap.update(simulator.state.zones);
   waitTimes.update(simulator.state.waitTimes);
   updateAIRecommendation(simulator.state);
+  updateSafetyScore(simulator.state.zones);
+
+  /**
+   * Computes and displays a stadium-wide Safety Score.
+   * Score is the inverse of average density across all zones (higher = safer).
+   * Updates the header bar's Safety chip with color-coded feedback.
+   *
+   * @param {Array<{density: number}>} zones - Current zone density snapshot.
+   */
+  function updateSafetyScore(zones) {
+    const scoreEl = document.getElementById('safety-score');
+    const attendEl = document.getElementById('live-attendance');
+    if (!scoreEl) return;
+
+    const avgDensity = zones.reduce((sum, z) => sum + z.density, 0) / zones.length;
+    const safetyPct = Math.round((1 - avgDensity) * 100);
+    const newText = `${safetyPct}%`;
+
+    if (scoreEl.textContent !== newText) {
+      scoreEl.textContent = newText;
+      scoreEl.className = 'att-value';
+      if (safetyPct >= 60) scoreEl.classList.add('text-success');
+      else if (safetyPct >= 35) scoreEl.classList.add('text-warning');
+      else scoreEl.classList.add('text-danger');
+    }
+
+    // Update attendance display
+    if (attendEl) {
+      attendEl.textContent = simulator.state.attendance.toLocaleString();
+    }
+  }
 
   // ── Simulator event bindings
   // EVENT-DRIVEN ARCHITECTURE: the simulator emits events on a fixed cadence
@@ -30,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     heatmap.update(zones);
     updateAIRecommendation(simulator.state);
     updateSmartSuggestions(simulator.state);
+    updateSafetyScore(zones);
 
     // 🚀 Production Firebase Integration
     firebaseService.saveCrowdData(zones);
@@ -134,10 +182,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!routingMode) enableRouteMode();
     
-    // Performance metrics (Task 5)
+    // Performance metrics (Task 5) + Firebase Performance trace
+    const perfTrace = firebaseService.startPerformanceTrace('route_calculation');
     const t0 = performance.now();
     const meta = routing.showRoute(start, end);
     const t1 = performance.now();
+    if (perfTrace) perfTrace.stop();
+
+    // Google Analytics: track route calculation
+    firebaseService.logAnalyticsEvent('route_calculated', {
+      start,
+      end,
+      calc_time_ms: Math.round(t1 - t0),
+      is_emergency: simulator.mode === 'emergency',
+    });
 
     // Task 4: Explainable Routing
     const pathIds = routing.calculatePath(start, end);
@@ -368,6 +426,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Toggle UI Banner
     const banner = document.getElementById('emergency-banner');
     if (banner) banner.classList.toggle('hidden', !emergencyActive);
+
+    // Google Analytics: track emergency mode toggle
+    firebaseService.logAnalyticsEvent('emergency_mode_toggled', {
+      active: emergencyActive,
+      scenario,
+    });
 
     console.log(`[Emergency] Mode switched to: ${scenario}`);
   });

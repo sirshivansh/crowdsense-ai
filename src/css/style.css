@@ -1484,7 +1484,7 @@ body.emergency-mode .map-wrapper {
 }
 /* ── TASK-SPECIFIC UI ENHANCEMENTS ── */
 .status-panel { padding-bottom: 8px !important; }
-.status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.status-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
 .status-pill { background: var(--bg-raised); border: 1px solid var(--border-faint); padding: 4px 8px; border-radius: var(--r-sm); font-size: 9px; display: flex; align-items: center; gap: 5px; color: var(--text-secondary); }
 .dot { width: 6px; height: 6px; border-radius: 50%; }
 .dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }

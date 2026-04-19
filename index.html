@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CrowdSense AI - Live Attendee Map</title>
+  <title>CrowdSense AI New - Live Attendee Map</title>
   <meta name="description" content="Live stadium map, crowd congestion tracker, and optimal routes for attendees." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,7 +24,21 @@
   <header class="topbar glass-panel">
     <div class="logo">
       <span class="logo-icon" aria-hidden="true">🏟️</span>
-      <h1>CrowdSense <strong>AI</strong></h1>
+      <h1>CrowdSense <strong>AI New</strong></h1>
+    </div>
+    <div class="topbar-center">
+      <div class="attendance-chip" role="status" aria-label="Current stadium attendance">
+        <span class="att-label">Attendance</span>
+        <span class="att-value" id="live-attendance">54,200</span>
+      </div>
+      <div class="live-indicator" role="status" aria-label="Live data streaming status">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span class="live-label">Live</span>
+      </div>
+      <div class="attendance-chip" role="status" aria-label="Overall stadium safety score">
+        <span class="att-label">Safety</span>
+        <span class="att-value" id="safety-score">--</span>
+      </div>
     </div>
     <nav class="topbar-actions" aria-label="Main navigation">
       <button class="icon-btn active" aria-label="View heatmap of crowd density" id="btn-heatmap" aria-pressed="true">🌡️</button>
@@ -206,26 +220,28 @@
     <!-- Fixed Right Data Column — unified glass panel -->
     <aside class="right-panel glass-panel" aria-label="Live data and controls panel">
       <!-- Task 3: System Status Panel -->
-      <section class="widget-section status-panel" id="system-status">
+      <section class="widget-section status-panel" id="system-status" role="status" aria-label="System health indicators">
         <h4 class="widget-title">System Health</h4>
         <div class="status-grid">
           <div class="status-pill"><span class="dot green"></span> Simulator: ON</div>
           <div class="status-pill"><span id="status-predictor" class="dot green"></span> AI: ACTIVE</div>
           <div id="status-vertex-pill" class="status-pill"><span class="dot grey"></span> Vertex: OFF</div>
           <div class="status-pill"><span class="dot green"></span> Firebase: OK</div>
+          <div id="status-auth-pill" class="status-pill"><span class="dot grey"></span> Auth: --</div>
+          <div class="status-pill"><span class="dot green"></span> Analytics: ON</div>
         </div>
       </section>
 
       <!-- Task 1 & 2: Demo & Scenario Controls -->
-      <section class="widget-section demo-panel" id="demo-controls">
+      <section class="widget-section demo-panel" id="demo-controls" aria-label="Simulation scenario controls">
         <h4 class="widget-title">Simulation Scenario</h4>
         <div class="demo-grid">
-          <select id="scenario-selector" class="scenario-select">
+          <select id="scenario-selector" class="scenario-select" aria-label="Select a simulation scenario">
             <option value="normal">Normal Flow</option>
             <option value="peak">Peak Crowd (85%)</option>
             <option value="emergency">Emergency Evac</option>
           </select>
-          <button id="btn-run-demo" class="demo-btn">▶ Run Demo</button>
+          <button id="btn-run-demo" class="demo-btn" aria-label="Run automated demo scenario sequence">▶ Run Demo</button>
         </div>
       </section>
 

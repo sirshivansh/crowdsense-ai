@@ -85,10 +85,10 @@ describe('Integration Tests — Emergency, Vertex, and Routing Pipeline', () => 
 
   // ── Vertex AI Fallback ──────────────────────────────────────
 
-  it('uses local WRC engine when USE_VERTEX is false', async () => {
-    expect(USE_VERTEX).toBe(false);
+  it('uses Vertex AI engine when USE_VERTEX is true', async () => {
+    expect(USE_VERTEX).toBe(true);
     const result = await CongestionPredictor.getAnalysis([0.3, 0.4, 0.5, 0.6]);
-    // Should return a valid local result, not null
+    // Should return a valid result (either from mock Vertex or local fallback)
     expect(result).toBeDefined();
     expect(result).toHaveProperty('isIncreasing');
     expect(result).toHaveProperty('confidence');

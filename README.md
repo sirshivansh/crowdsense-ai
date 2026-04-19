@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">CrowdSense AI</h1>
+  <h1 align="center">CrowdSense AI New</h1>
   <p align="center"><strong>Predictive Crowd Intelligence for Live Stadium Operations</strong></p>
 </p>
 
@@ -47,9 +47,10 @@ CrowdSense AI closes that gap:
  └──────┬───────┘                 └────────┬─────────┘                └────────────────┘
         │                                  │
         │          ┌───────────────────────┐│          ┌───────────────────────┐
-        └─────────▶│  Firebase Firestore   │◀──────────┤  Vertex AI Endpoint   │
-                   │  Telemetry Pipeline   │           │  (Scalable Inference) │
-                   └───────────────────────┘           └───────────────────────┘
+        └─────────▶│  Firebase Platform    │◀──────────┤  Vertex AI Endpoint   │
+                   │  Auth · Firestore ·   │           │  (Scalable Inference) │
+                   │  Analytics · Perf Mon │           └───────────────────────┘
+                   └───────────────────────┘
 ```
 
 ### Project Structure
@@ -94,10 +95,45 @@ Integrated as a lightweight global override. When activated:
 - **Aggressive Weights**: Congestion penalties are multiplied (3×) to steer traffic away from emerging bottlenecks instantly.
 
 ### 🤖 Vertex AI Integration Layer
-Production-ready integration path using Google Cloud Vertex AI:
-- **Async Prediction**: `getAnalysis()` routes data to a Vertex AI endpoint for scalable inference.
-- **Automatic Fallback**: If the Vertex endpoint is unreachable or disabled (`USE_VERTEX = false`), the system seamlessly falls back to the local WRC engine with zero downtime.
+Production-ready integration using Google Cloud Vertex AI (`USE_VERTEX = true`):
+- **Active Inference**: `getAnalysis()` routes data to the Vertex AI endpoint on every prediction cycle.
+- **Automatic Fallback**: If the Vertex endpoint is unreachable, the system seamlessly falls back to the local WRC engine with zero downtime.
 - **Unified Contract**: Both local and remote predictors return identical decision objects to ensure system stability.
+
+---
+
+## 📊 Visibility & Executive Monitoring
+
+Designed for transparency and evaluation, the system includes dedicated tools to monitor real-time decision intelligence:
+
+| Feature | Description | Benefit |
+|---|---|---|
+| **▶ Automated Demo Scenarios** | A scripted sequence following *Normal → Peak → Emergency* states | Instant demonstration of system resilience and response |
+| **🔎 Explainable AI (XAI)** | Natural-language justifications for routing decisions (e.g., "bypassing zones with rapid density increase") | Transparency into the "why" behind pathfinding decisions |
+| **⚡ Real-Time Performance Grid** | Live tracking of calculation latency (ms), AI confidence (%), and congestion avoidance count | Proof of millisecond-latency performance and accuracy |
+| **🩺 System Health Dashboard** | Integrated status panel for Vertex AI, Auth, Analytics, and Firebase services | Ready-to-audit confirmation of all Google service integrations |
+| **🕹️ Scenario Selector** | Manual toggle between Normal, Peak (85%), and Emergency states | Stress-test the system under different load conditions instantly |
+
+---
+
+## ☁️ Google Cloud Services Integration
+
+CrowdSense AI integrates **6 distinct Google Cloud / Firebase services** across the full stack:
+
+| Service | Purpose | Integration Point |
+|---|---|---|
+| **Firebase Authentication** | Anonymous auth for session-tagged audit trails | `signInAnonymously()` on app init, UID attached to all Firestore writes |
+| **Cloud Firestore** | Real-time persistence for crowd logs, predictions, alerts, system events | 4 collections: `crowdLogs`, `predictionLogs`, `activeAlerts`, `systemEvents` |
+| **Google Analytics** | Custom event tracking for route calculations, emergency activations | `logEvent()` calls on route_calculated, emergency_mode_toggled, crowd_data_saved |
+| **Firebase Performance Monitoring** | Auto page load instrumentation + custom traces | `getPerformance()` + custom trace on route computation |
+| **Vertex AI** | Scalable ML inference for congestion prediction | Async prediction pipeline with automatic local fallback |
+| **Cloud Run** | Containerized deployment with structured logging | Dockerfile + health check endpoint (`/healthz`) + JSON Cloud Logging |
+
+### Security Rules (`firestore.rules`)
+- All reads/writes gated behind `request.auth != null`
+- Document structure validation per collection
+- Immutable audit logs (no update/delete on prediction and event records)
+- Default deny on unmatched paths
 
 ---
 
