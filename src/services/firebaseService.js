@@ -5,13 +5,13 @@ import { getAnalytics, logEvent } from "firebase/analytics";
 import { getPerformance, trace } from "firebase/performance";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCLB3y2cn8tqo5G10y9K6kglyzfjBj54h4",
-  authDomain: "crowdsense-ai-7d584.firebaseapp.com",
-  projectId: "crowdsense-ai-7d584",
-  storageBucket: "crowdsense-ai-7d584.firebasestorage.app",
-  messagingSenderId: "328672963147",
-  appId: "1:328672963147:web:3d93493202ee7163ae7bce",
-  measurementId: "G-2LTT2ELKY8"
+  apiKey: "AIzaSyABrgM2dtkw5S1sxxKjClxzkg9MSxd_vi0",
+  authDomain: "crowdsense-ai-new.firebaseapp.com",
+  projectId: "crowdsense-ai-new",
+  storageBucket: "crowdsense-ai-new.firebasestorage.app",
+  messagingSenderId: "81506469908",
+  appId: "1:81506469908:web:d901cf000fbb69ee873f01",
+  measurementId: "G-WT0S69R5Q2"
 };
 
 const app = initializeApp(firebaseConfig);

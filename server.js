@@ -61,7 +61,10 @@ app.use(
           "https://firebase.googleapis.com",
           "https://firebaseinstallations.googleapis.com",
           "https://www.google-analytics.com",
-          "https://us-central1-aiplatform.googleapis.com"
+          "https://us-central1-aiplatform.googleapis.com",
+          "https://identitytoolkit.googleapis.com",
+          "https://securetoken.googleapis.com",
+          "https://firebaseremoteconfig.googleapis.com"
         ],
 
         styleSrc: [
